@@ -23,6 +23,8 @@ class PPL:
     for container in containers:
       price = container.find("span", class_="product-price")
       quantityGrid = container.find("span", class_="qty_grid")
+      if (quantityGrid is None):
+        continue
       quantity = quantityGrid.text[1:]
       if quantity.endswith("+"):
         quantity = quantity[:-1]
@@ -30,6 +32,8 @@ class PPL:
         result.append(price.text)
       else:
         result.append("BRAK")
+    if len(result) == 0:
+      result.append("BRAK")
     return result
 
 class FG:
@@ -41,6 +45,8 @@ class FG:
   def parsePage(self, page):
     soup = BeautifulSoup(page, features="html.parser")
     tables = soup.find_all('table')
+    if len(tables) == 1:
+      return ["BRAK"]
     table = tables[1]
     trs = table.find_all('tr')
     result = []
@@ -58,13 +64,7 @@ class FG:
 def createLink(card, leftURL, rightURL):
   return leftURL + urllib.parse.quote(str(card)) + rightURL
 
-# def parsePage(page):
-#   result = []
-#   soup = BeautifulSoup(page, features="html.parser")
-#   soup.find_all('')
-
 class EngineManager:
-
   engines=[]
 
   def __init__(self):
@@ -77,11 +77,12 @@ class EngineManager:
       link = engine.createLink(card)
       page = getPage(link)
       result = engine.parsePage(page)
-      searchResult.append(result)
+      minPrice = min(result)
+      searchResult.append(minPrice)
     return searchResult
 
   def displayTableHeader(self):
-    print("\t", end="")
+    #print("\t", end='')
     for engine in self.engines:
       print("\t" + engine.title, end="")
     print("")
@@ -101,10 +102,18 @@ def main():
     for line in lines:
         cardResult = eng.searchAllEngines(line)
         print(line, end="")
-        for i in range(0, len(cardResult[0])):
-          #print("\t" + result, end="")
-          print("\t" + cardResult[0][i], end="")
-          print("\t" + cardResult[1][i], end="")
+        lenthMap = map(len, cardResult)
+        lenthMap = list(lenthMap)
+        maxLen = max(lenthMap) - 1
+        print("\t", end="")
+        for i in range(0, len(cardResult) - 1):
+          print("\t" + cardResult[i],end="")
+          # for j in range(0, len(cardResult[i]) - 1):
+          #   if j <= len(cardResult[i]) - 1:
+          #     print("\t" + str(cardResult[i][j]), end="")
+          #   else:
+          #     print("\t ", end="")
+
           print("")
         print("")
     f.close()
