@@ -106,15 +106,8 @@ def main():
         lenthMap = list(lenthMap)
         maxLen = max(lenthMap) - 1
         print("\t", end="")
-        for i in range(0, len(cardResult) - 1):
-          print("\t" + cardResult[i],end="")
-          # for j in range(0, len(cardResult[i]) - 1):
-          #   if j <= len(cardResult[i]) - 1:
-          #     print("\t" + str(cardResult[i][j]), end="")
-          #   else:
-          #     print("\t ", end="")
-
-          print("")
+        for i in range(0, len(cardResult)):
+          print(str(cardResult[i]) + "\t\t",end="")
         print("")
     f.close()
   else:
