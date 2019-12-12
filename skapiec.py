@@ -2,14 +2,17 @@
 import urllib
 import urllib.request
 import sys
+import requests
+import json
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-def getPage(address):
-  html = urllib.request.urlopen(address).read()
-  return html
+class webscrapper:
+  def getPage(self, address):
+    html = urllib.request.urlopen(address).read()
+    return html
 
-class PPL:
+class PPL(webscrapper):
   title = "Planeswalker"
   def createLink(self, card):
     leftURL = "http://planeswalker.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query="
@@ -36,7 +39,7 @@ class PPL:
       result.append("BRAK")
     return result
 
-class FG:
+class FG(webscrapper):
   title = "Flamberg"
   def createLink(self, card):
     leftURL = "https://www.flamberg.com.pl/advanced_search_result.php?keywords="
@@ -61,6 +64,29 @@ class FG:
           result.append("BRAK")
     return result
 
+  class Alledrogo:
+    title = "Allegro"
+    kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
+    token = ""
+    def __init__(self):
+      r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + kurwasikret})
+      c = json.loads(r.text)
+      token = c.get('access_token')
+
+    def createLink(self, card):
+        leftURL = "https://api.allegro.pl/offers/listing?phase=Wrath of God"
+        rightURL = "&category.id=6066"
+        return createLink(card, leftURL, rightURL)
+
+    def parsePage(self, page):
+      j = json.loads(page)
+      
+
+    def getPage(self, address):
+      r = requests.get(address, headers={'Authorization' : "Bearer " + token, 'Accept' : "application/vnd.allegro.public.v1+json"})
+      return r.text
+      
+
 def createLink(card, leftURL, rightURL):
   return leftURL + urllib.parse.quote(str(card)) + rightURL
 
@@ -75,7 +101,7 @@ class EngineManager:
     searchResult = []
     for engine in self.engines:
       link = engine.createLink(card)
-      page = getPage(link)
+      page = engine.getPage(link)
       result = engine.parsePage(page)
       minPrice = min(result)
       searchResult.append(minPrice)
