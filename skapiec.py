@@ -64,27 +64,27 @@ class FG(webscrapper):
           result.append("BRAK")
     return result
 
-  class Alledrogo:
-    title = "Allegro"
-    kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
-    token = ""
-    def __init__(self):
-      r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + kurwasikret})
-      c = json.loads(r.text)
-      token = c.get('access_token')
+class Alledrogo:
+  title = "Allegro"
+  kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
+  token = ""
+  def __init__(self):
+    r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + self.kurwasikret})
+    c = json.loads(r.text)
+    token = c.get('access_token')
 
-    def createLink(self, card):
-        leftURL = "https://api.allegro.pl/offers/listing?phase=Wrath of God"
-        rightURL = "&category.id=6066"
-        return createLink(card, leftURL, rightURL)
+  def createLink(self, card):
+      leftURL = "https://api.allegro.pl/offers/listing?phase=Wrath of God"
+      rightURL = "&category.id=6066"
+      return createLink(card, leftURL, rightURL)
 
-    def parsePage(self, page):
-      j = json.loads(page)
-      
+  def parsePage(self, page):
+    j = json.loads(page)
+    a = j.get("regular")
 
-    def getPage(self, address):
-      r = requests.get(address, headers={'Authorization' : "Bearer " + token, 'Accept' : "application/vnd.allegro.public.v1+json"})
-      return r.text
+  def getPage(self, address):
+    r = requests.get(address, headers={'Authorization' : "Bearer " + self.token, 'Accept' : "application/vnd.allegro.public.v1+json"})
+    return r.text
       
 
 def createLink(card, leftURL, rightURL):
@@ -96,6 +96,7 @@ class EngineManager:
   def __init__(self):
     self.engines.append(FG())
     self.engines.append(PPL())
+    self.engines.append(Alledrogo())
 
   def searchAllEngines(self, card):
     searchResult = []
