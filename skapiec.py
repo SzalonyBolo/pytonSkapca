@@ -6,6 +6,7 @@ import requests
 import json
 from pathlib import Path
 from bs4 import BeautifulSoup
+from tabulate import tabulate
 
 class webscrapper:
   def getPage(self, address):
@@ -15,24 +16,25 @@ class webscrapper:
 class PPL(webscrapper):
   title = "Planeswalker"
   def createLink(self, card):
-    leftURL = "http://planeswalker.pl/szukaj?controller=search&orderby=position&orderway=desc&search_query="
+    leftURL = "http://planeswalker.pl/szukaj?controller=search&orderby=price&orderway=asc&search_query="
     rightURL = "&submit_search="
     return createLink(card, leftURL, rightURL)
 
-  def parsePage(self, page):
+  def parsePage(self, page, card):
     soup = BeautifulSoup(page, features="html.parser")
     containers = soup.find_all("div", class_="product-container")
     result = []
     for container in containers:
       price = container.find("span", class_="product-price")
       quantityGrid = container.find("span", class_="qty_grid")
+      name = container.find("a", class_="product-name")
       if (quantityGrid is None):
         continue
       quantity = quantityGrid.text[1:]
       if quantity.endswith("+"):
         quantity = quantity[:-1]
-      if int(quantity) > 0:
-        result.append(price.text)
+      if int(quantity) > 0 and card.lower() in name.text.strip().lower():
+        result.append(price.text.strip())
       else:
         result.append("BRAK")
     if len(result) == 0:
@@ -45,7 +47,7 @@ class FG(webscrapper):
     leftURL = "https://www.flamberg.com.pl/advanced_search_result.php?keywords="
     return createLink(card, leftURL, "")
 
-  def parsePage(self, page):
+  def parsePage(self, page, card):
     soup = BeautifulSoup(page, features="html.parser")
     tables = soup.find_all('table')
     if len(tables) == 1:
@@ -59,7 +61,7 @@ class FG(webscrapper):
         price = tds[3].text
         quantity = tds[4].text
         if int(quantity) > 0:
-          result.append(price[:-2])
+          result.append(price[:-2].strip())
         else:
           result.append("BRAK")
     return result
@@ -68,19 +70,31 @@ class Alledrogo:
   title = "Allegro"
   kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
   token = ""
+  actualCard = ""
+
   def __init__(self):
     r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + self.kurwasikret})
     c = json.loads(r.text)
-    token = c.get('access_token')
+    self.token = c.get('access_token')
 
   def createLink(self, card):
-      leftURL = "https://api.allegro.pl/offers/listing?phase=Wrath of God"
+      leftURL = "https://api.allegro.pl/offers/listing?phrase="
       rightURL = "&category.id=6066"
+      self.actualCard = card
       return createLink(card, leftURL, rightURL)
 
-  def parsePage(self, page):
+  def parsePage(self, page, card):
+    card = card
     j = json.loads(page)
-    a = j.get("regular")
+    items = j.get("items")
+    regular = items.get("regular")
+    result = []
+    for item in regular:
+      if card in item["name"]:
+        result.append(item["sellingMode"]["price"]["amount"].strip())
+    if len(result) == 0:
+      result.append("BRAK")
+    return result
 
   def getPage(self, address):
     r = requests.get(address, headers={'Authorization' : "Bearer " + self.token, 'Accept' : "application/vnd.allegro.public.v1+json"})
@@ -100,45 +114,40 @@ class EngineManager:
 
   def searchAllEngines(self, card):
     searchResult = []
+    searchResult.append(card)
     for engine in self.engines:
       link = engine.createLink(card)
       page = engine.getPage(link)
-      result = engine.parsePage(page)
+      result = engine.parsePage(page, card)
       minPrice = min(result)
       searchResult.append(minPrice)
     return searchResult
 
-  def displayTableHeader(self):
-    #print("\t", end='')
+  def displyResults(self, results):
+    titleRow = []
+    titleRow.append("Card")
     for engine in self.engines:
-      print("\t" + engine.title, end="")
-    print("")
+      titleRow.append(engine.title)
+    results.insert(0, titleRow)
+    print(tabulate(results, headers="firstrow"))
 
 def main():
   argLen = len(sys.argv)
   if argLen < 2:
-    print('You should pass card name or file with card list in first argument')
+    print('You should pass file with card list in first argument')
     sys.exit()
 
   eng = EngineManager()
+  cardsResult = []
   my_file = Path(sys.argv[1])
   if my_file.is_file():
     f = open(str(my_file), "r")
     lines = f.readlines()
-    eng.displayTableHeader()
     for line in lines:
-        cardResult = eng.searchAllEngines(line)
-        print(line, end="")
-        lenthMap = map(len, cardResult)
-        lenthMap = list(lenthMap)
-        maxLen = max(lenthMap) - 1
-        print("\t", end="")
-        for i in range(0, len(cardResult)):
-          print(str(cardResult[i]) + "\t\t",end="")
-        print("")
+      cardsResult.append(eng.searchAllEngines(line.strip()))
     f.close()
-  else:
-    print("Can't open " + my_file)
+  eng.displyResults(cardsResult)
+    
 
 if __name__ == "__main__":
   main()
