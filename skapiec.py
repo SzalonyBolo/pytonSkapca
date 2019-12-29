@@ -104,6 +104,7 @@ class Alledrogo:
 def createLink(card, leftURL, rightURL):
   return leftURL + urllib.parse.quote(str(card)) + rightURL
 
+
 class EngineManager:
   engines=[]
 
@@ -123,13 +124,29 @@ class EngineManager:
       searchResult.append(minPrice)
     return searchResult
 
+  def calculateResults(self, results):
+    calculation = []
+    engineLen = len(self.engines)
+    for i in range(0, engineLen):
+      calculation.append(0)
+    for r in results:
+      for i in range(0, engineLen):
+        if r[i + 1] != "BRAK":
+          calculation[i] += 1
+    calculation.insert(0, "Amount")
+    return calculation
+
   def displyResults(self, results):
+    results.append(self.calculateResults(results)) 
+    results.insert(0, self.generateTitleRow())
+    print(tabulate(results, headers="firstrow"))
+
+  def generateTitleRow(self):
     titleRow = []
     titleRow.append("Card")
     for engine in self.engines:
       titleRow.append(engine.title)
-    results.insert(0, titleRow)
-    print(tabulate(results, headers="firstrow"))
+    return titleRow
 
 def main():
   argLen = len(sys.argv)
@@ -147,7 +164,7 @@ def main():
       cardsResult.append(eng.searchAllEngines(line.strip()))
     f.close()
   eng.displyResults(cardsResult)
-    
+
 
 if __name__ == "__main__":
   main()
