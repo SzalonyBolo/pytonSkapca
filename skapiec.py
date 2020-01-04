@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from bs4 import BeautifulSoup
 from tabulate import tabulate
+from decimal import Decimal
 
 class webscrapper:
   def getPage(self, address):
@@ -34,7 +35,7 @@ class PPL(webscrapper):
       if quantity.endswith("+"):
         quantity = quantity[:-1]
       if int(quantity) > 0 and card.lower() in name.text.strip().lower():
-        result.append(price.text.strip())
+        result.append(price.text.strip()[:-2])
       else:
         result.append("BRAK")
     if len(result) == 0:
@@ -70,7 +71,6 @@ class Alledrogo:
   title = "Allegro"
   kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
   token = ""
-  actualCard = ""
 
   def __init__(self):
     r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + self.kurwasikret})
@@ -78,18 +78,18 @@ class Alledrogo:
     self.token = c.get('access_token')
 
   def createLink(self, card):
-      leftURL = "https://api.allegro.pl/offers/listing?phrase="
-      rightURL = "&category.id=6066"
-      self.actualCard = card
-      return createLink(card, leftURL, rightURL)
+    leftURL = "https://api.allegro.pl/offers/listing?phrase="
+    rightURL = "&category.id=6066"
+    return createLink(card, leftURL, rightURL)
 
   def parsePage(self, page, card):
     card = card
     j = json.loads(page)
     items = j.get("items")
-    regular = items.get("regular")
+    cards = items.get("regular")
+    #cards.append(items.get(""))
     result = []
-    for item in regular:
+    for item in cards:
       if card in item["name"]:
         result.append(item["sellingMode"]["price"]["amount"].strip())
     if len(result) == 0:
@@ -120,7 +120,14 @@ class EngineManager:
       link = engine.createLink(card)
       page = engine.getPage(link)
       result = engine.parsePage(page, card)
-      minPrice = min(result)
+      prices = []
+      for price in result:
+        if price != "BRAK":
+          prices.append(price)
+      if len(prices) > 0:
+        minPrice = min([Decimal(x.strip(' "').replace(',', '.')) for x in prices])
+      else:
+        minPrice = "BRAK"
       searchResult.append(minPrice)
     return searchResult
 
