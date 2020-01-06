@@ -71,6 +71,8 @@ class Alledrogo:
   title = "Allegro"
   kurwasikret = "M2QwYzhlODRiNzA4NGYxNDkzOWFmNDlhYWRkNmU2YzE6dVN0WGJpY3RNSkFvMFFuVFBFUTl4b1htUUcwZ1dBQUl1aGdPVzNLbTZUMzJ1UExQRGduQmVxSmFMVFdtWE9yMA=="
   token = ""
+  sellers = {}
+  sellersShowAmount = 4
 
   def __init__(self):
     r = requests.post("https://allegro.pl/auth/oauth/token?grant_type=client_credentials", headers={"Authorization": "Basic " + self.kurwasikret})
@@ -83,22 +85,48 @@ class Alledrogo:
     return createLink(card, leftURL, rightURL)
 
   def parsePage(self, page, card):
-    card = card
     j = json.loads(page)
     items = j.get("items")
     cards = items.get("regular")
-    #cards.append(items.get(""))
+    #cards.append(items.get("promoted"))
     result = []
     for item in cards:
       if card in item["name"]:
-        result.append(item["sellingMode"]["price"]["amount"].strip())
+        price = item["sellingMode"]["price"]["amount"].strip()
+        result.append(price)
+        seller = item["seller"]["id"]
+        addToDictionary(card, seller, price)
     if len(result) == 0:
       result.append("BRAK")
     return result
 
+  def addToDictionary(self, card, seller, price):
+    if not seller in self.sellers:
+          self.sellers[seller] = {}
+          self.sellers[seller][card] = Decimal(price)
+        else:
+          if card in self.sellers[seller]:
+            if self.sellers[seller][card] > Decimal(price):
+              self.sellers[seller][card] = Decimal(price)
+          else:
+            self.sellers[seller][card] = Decimal(price)
+
   def getPage(self, address):
     r = requests.get(address, headers={'Authorization' : "Bearer " + self.token, 'Accept' : "application/vnd.allegro.public.v1+json"})
     return r.text
+  
+  def printSellers(self):
+    bestSellers = []
+    if len(self.sellers) <= self.sellersShowAmount:
+      bestSellers = self.sellers
+    else:
+      countMap = {}
+      i = 0
+      for item in self.sellers.items():
+        countMap[i] = len(item)
+        i=i+1
+      for i in range(0, self.sellersShowAmount):
+        max(self.sellers[], key=mm.get)
       
 
 def createLink(card, leftURL, rightURL):
@@ -144,7 +172,7 @@ class EngineManager:
     return calculation
 
   def displyResults(self, results):
-    results.append(self.calculateResults(results)) 
+    results.append(self.calculateResults(results))
     results.insert(0, self.generateTitleRow())
     print(tabulate(results, headers="firstrow"))
 
