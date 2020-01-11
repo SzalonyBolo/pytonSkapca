@@ -102,14 +102,16 @@ class Alledrogo:
 
   def addToDictionary(self, card, seller, price):
     if not seller in self.sellers:
-          self.sellers[seller] = {}
+      self.sellers[seller] = []
+      self.sellers[seller].append([])
+      self.sellers[seller][0].append(card)
+      self.sellers[seller][0].append(Decimal(price))
+    else:
+      if card in self.sellers[seller]:
+        if self.sellers[seller][card] > Decimal(price):
           self.sellers[seller][card] = Decimal(price)
-        else:
-          if card in self.sellers[seller]:
-            if self.sellers[seller][card] > Decimal(price):
-              self.sellers[seller][card] = Decimal(price)
-          else:
-            self.sellers[seller][card] = Decimal(price)
+      else:
+        self.sellers[seller][card] = Decimal(price)
 
   def getPage(self, address):
     r = requests.get(address, headers={'Authorization' : "Bearer " + self.token, 'Accept' : "application/vnd.allegro.public.v1+json"})
