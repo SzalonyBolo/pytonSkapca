@@ -95,41 +95,50 @@ class Alledrogo:
         price = item["sellingMode"]["price"]["amount"].strip()
         result.append(price)
         seller = item["seller"]["id"]
-        addToDictionary(card, seller, price)
+        self.addToDictionary(card, seller, price)
     if len(result) == 0:
       result.append("BRAK")
     return result
 
   def addToDictionary(self, card, seller, price):
+    price = Decimal(price)
     if not seller in self.sellers:
       self.sellers[seller] = []
       self.sellers[seller].append([])
       self.sellers[seller][0].append(card)
       self.sellers[seller][0].append(Decimal(price))
     else:
-      if card in self.sellers[seller]:
-        if self.sellers[seller][card] > Decimal(price):
-          self.sellers[seller][card] = Decimal(price)
+      cardInSeller = list(filter(lambda x: card in x, self.sellers[seller]))
+      if len(cardInSeller) > 0:
+        if cardInSeller[0][1] > price:
+          cardInSeller[0][1] = price
       else:
-        self.sellers[seller][card] = Decimal(price)
+        self.sellers[seller].append([])
+        self.sellers[seller][-1].append(card)
+        self.sellers[seller][-1].append(Decimal(price))
+      # if card in self.sellers[seller]:
+      #   if self.sellers[seller][card] > Decimal(price):
+      #     self.sellers[seller][card] = Decimal(price)
+      # else:
+      #   self.sellers[seller][card] = Decimal(price)
 
   def getPage(self, address):
     r = requests.get(address, headers={'Authorization' : "Bearer " + self.token, 'Accept' : "application/vnd.allegro.public.v1+json"})
     return r.text
   
-  def printSellers(self):
-    bestSellers = []
-    if len(self.sellers) <= self.sellersShowAmount:
-      bestSellers = self.sellers
-    else:
-      countMap = {}
-      i = 0
-      for item in self.sellers.items():
-        countMap[i] = len(item)
-        i=i+1
-      for i in range(0, self.sellersShowAmount):
-        max(self.sellers[], key=mm.get)
-      
+  def displaySellers(self):
+    # bestSellers = []
+    # if len(self.sellers) <= self.sellersShowAmount:
+    #   bestSellers = self.sellers
+    # else:
+    #   countMap = {}
+    #   i = 0
+    #   for item in self.sellers.items():
+    #     countMap[i] = len(item)
+    #     i=i+1
+    #   for i in range(0, self.sellersShowAmount):
+    #     max(self.sellers[], key=mm.get)
+    print(tabulate(self.sellers))
 
 def createLink(card, leftURL, rightURL):
   return leftURL + urllib.parse.quote(str(card)) + rightURL
@@ -139,8 +148,8 @@ class EngineManager:
   engines=[]
 
   def __init__(self):
-    self.engines.append(FG())
-    self.engines.append(PPL())
+    #self.engines.append(FG())
+    #self.engines.append(PPL())
     self.engines.append(Alledrogo())
 
   def searchAllEngines(self, card):
@@ -185,6 +194,11 @@ class EngineManager:
       titleRow.append(engine.title)
     return titleRow
 
+  def displaySellers(self):
+    for engine in self.engines:
+      if hasattr(engine, 'displaySellers'):
+        engine.displaySellers()
+
 def main():
   argLen = len(sys.argv)
   if argLen < 2:
@@ -201,6 +215,7 @@ def main():
       cardsResult.append(eng.searchAllEngines(line.strip()))
     f.close()
   eng.displyResults(cardsResult)
+  eng.displaySellers()
 
 
 if __name__ == "__main__":
